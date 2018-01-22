@@ -1,0 +1,50 @@
+Islands
+By Dale Weiler
+
+# Deal
+Each player gets eight cards. If a move cannot be played then the player picks
+up one additional card. Plays go in clockwise order.
+
+# Sea
+The sea is where players play cards to make points. The sea is an 8x8 grid which
+initially begins with no islands. There are three moves that can be played to
+add to the sea:
+    * Making an island
+    * Joining an island
+    * Growing an island
+
+When a run of eight is made vertically or horizontally, the entire run is removed
+from the sea.
+
+## Making an island
+Making an island can be done one of two ways:
+    * Playing a run of four vertically or horizontally.
+    * Playing two runs of the same in a 2x2 block.
+
+When making an island, the island cannot end up joining another island unless
+the cards that are played continue the runs of that island.
+
+## Joining an island
+When there are two islands adjacent to each other with no land between them and
+the player has the correct cards to join the islands such that the runs continue,
+then the islands can be joined.
+
+## Growing an island
+To grow an island a card must be played that continues the run, if in doing so
+two islands get joined, the run must continue the run into the other island's run
+as well, otherwise the move cannot be played.
+
+# Scoring
+For every card added to a run, the player gets a point for every card in the
+run. So adding a card to a run of four scores five points, and adding another
+card scores six points. Multiple cards can be played per turn.
+
+# Tsunami
+When a single player is left with no cards the entire sea is erased. This is called
+a tsunami, when a player forces one that player collects the points of every card
+in the sea. So if there is twelve cards for example, that player scores twelve
+points.
+
+# Winner
+The winner is determined by the first person to have 500 points or more after
+forcing a tsunami.

@@ -1,0 +1,14 @@
+// MAG / MIN                        | Bilinear (Near) | Bilinear (Far) | Mipmapping
+// ---------------------------------|-----------------|----------------|-----------
+// NEAREST / NEAREST_MIPMAP_NEAREST | Off             | Off            | Standard
+// NEAREST / LINEAR_MIPMAP_NEAREST  | Off             | On             | Standard
+// NEAREST / NEAREST_MIPMAP_LINEAR  | Off             | Off            | Use trilinear filtering
+// NEAREST / LINEAR_MIPMAP_LINEAR   | Off             | On             | Use trilinear filtering
+// NEAREST / NEAREST                | Off             | Off            | None
+// NEAREST / LINEAR                 | Off             | On             | None
+// LINEAR / NEAREST_MIPMAP_NEAREST  | On              | Off            | Standard
+// LINEAR / LINEAR_MIPMAP_NEAREST   | On              | On             | Standard
+// LINEAR / NEAREST_MIPMAP_LINEAR   | On              | Off            | Use trilinear filtering
+// LINEAR / LINEAR_MIPMAP_LINEAR    | On              | On             | Use trilinear filtering
+// LINEAR / NEAREST                 | On              | Off            | None
+// LINEAR / LINEAR                  | On              | On             | None

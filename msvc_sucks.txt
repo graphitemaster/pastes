@@ -1,0 +1,392 @@
+Why MSVC is such a horrible compiler
+By: Dale Weiler
+
+Chapter 1 - C support is abysmal.
+
+    1. Aggregate initializers
+
+    C99 allows non-constant expressions to be used in aggregate initializers, like
+    C++ (though C++ is strict about automatic/register variables only)
+
+    int x = 1;
+    int a[] = { 0, 1, x }; // invalid in MSVCs C-mode, but valid C99
+    volatile a[] = { 0, 1, x }; // invalid in MSVCs C-mode and C++ mode, but valid C99
+
+    2. Array parameter qualifiers
+
+    C99 provides a declaration syntax for function paramaters of array type, allowing
+    type qualifiers (const, volatile and restrict) to be included within the first
+    set of brackets of an array declarator. The qualifier modifies the type of the
+    array paramater itself.
+
+    void foo(int bar[const]); // invalid C++, C90, but valid C99
+
+    This is normally fine, as the equivalent can be expressed as
+
+    void foo(int *const bar);
+
+    However, C99 also allows static to be placed within the brackets of an array
+    declaration immediately preceding the expression specifying the size of the
+    array. The presence of this is used to indicate that the array is composed of
+    "at-least" the number of contiguous elements indicated by the size. This allows
+    various diagnostics to be produced if used incorrectly and for optimizing element
+    accesses.
+
+    void foo(int bar[static 10]); // valid C99
+
+    3. Characters
+
+    In C, character literals such as 'a' have type int, and thus sizeof('a') is
+    equal to sizeof(int). Similarly speaking, all stdio operations involving characters
+    like `putchar`, `getchar` return/expect int.
+
+    In C++ however, character literals have type char, and sizeof('a') is equal to
+    sizeof(char). In MSVCs C-mode, a character literal is treated with C++ rules and
+    not C ones, a blatant violation of the standard.
+
+    Code like the following becomes horrible inconsistent as a result
+
+    memset(&i, 'a', sizeof('a'));
+
+    4. Complex natrual logarithm
+
+    C99 introduces "clog", MSVC simply lacks it.
+
+    5. Comma operator inconsistencies
+
+    C mode in MSVC allows the following invalid C code to compile
+
+    int i, j;
+    (i, j) = 1;
+
+    The reason being is this is valid in C++. In C, the comma operator always results
+    in an r-value, even if its right operand is an l-value. While in C++ the operator
+    results in an l-value if its right operand is an l-value.
+
+    6. Complex floating-point type
+
+    C99 introduces _Complex and _Imaginary keyword, MSVC lacks them. There is
+    std::complex for C++ mode. It is however incompatible with C99 complex types.
+
+    7. Compound literals
+
+    C99 allows literals having types other than primitive types (e.g, user-defined
+    structures or array types) to be specified in constant expressions; these
+    are called compound literals. An example:
+
+    struct info {
+        char name[9];
+        int type;
+    };
+
+    void add(struct info);
+    void move(float coord[2]);
+
+    add((struct info){ "e", 0 }); // struct literal
+    move((float[2]){ 0.5, -2 }); // array literal
+
+    C++ simply does not support this feature and MSVCs C mode does not either
+
+    8. Const linkage
+
+    C specifies that a variable declared with a const qualifier is not a modifiable
+    object. In all other regards, though, it is treated the same as any other variable.
+    Specifically, if a const object with file scope is not explicitly declared static,
+    its name has external linkage and is visible to other translation units.
+
+    const int i = 1; // external linkage
+
+    C++ specifies that const object with file scope has internal linkage by default,
+    meaning that the object's name is not visible outside it's translation unit.
+    MSVC wrongly uses C++ rules when in C mode, breaking this.
+
+    9. Designated initializers
+
+    C99 introduces designated initializers, which allows specific members of structures,
+    unions, or arrays to be initialized explicitly by name or subscript. For example:
+
+    struct info {
+        char name[9];
+        int size;
+        int type;
+    };
+
+    struct info foo[] = {
+     [0] = { .size = 20, .name = "foo" },
+     [9] = { .size = -1, .name = "" },
+     [3] = { .type = 1, .name = "" }
+    };
+
+    MSVC does not support this in C mode.
+
+    10. Duplicating typedefs
+
+    C does not allow a given typedef to appear more than once in the same scope.
+    C++ allows redundant occurances of a given typedef within the same scope. MSVCs
+    C mode uses C++ rules and allows invalid C code to compile.
+
+    11. Dynamic sizeof
+
+    C99 supports VLA (variable-length-arrays), so the sizeof operator does not necessarily
+    evaluate to constant (compile-time) values in C. MSVC lacks VLAs and dynamic sizeof
+    in their C mode.
+
+    12. Empty parameter lists
+
+    C distinguishes between a function declared with an empty parameter list and a
+    function declared with a parameter list consisting of only void. The former is
+    an unprototyped function taking an unspecified number of arguments, while the
+    latter is prototyped function taking no arguments. C++ on the other hand makes
+    no distinction. MSVCs C mode uses the C++ rules and breaks valid C programs like
+    the following from compiling
+
+    extern void foo();
+
+    foo(1, 2, "hello world", 3.14);
+
+    13. Empty preprocessor function macro arguments
+
+    C99 allows preprocessor function macros to be specified with empty (missing)
+    arguments
+
+    #define FOO(a, b, c)
+    FOO(1, 2, 3) => 1 2 3
+    FOO(1, 2, ) => 1 2
+    FOO(1, , 3) => 1  3
+    FOO(1,,) => (nothing)
+
+    C++ does not support this, as a consequence, MSVC does not either.
+
+    14. Enumeration constants
+
+    Enumeration constants in C are named constants of type signed int. C++ is different,
+    in that enumeration constants have the same types as their enumeration type, which
+    means that they have the same size and alignment as their underlying integer type.
+    This means that sizeof(enumConstant) is not always equal to sizeof(int). MSVCs C
+    mode uses C++ rules and breaks the C guarantees.
+
+    15. Hexadecimal floating-point literals
+
+    C99 recognizes hexadecimal floating-point literals having "0x" and "p" exponent
+    specifier. C99 also provides format specifiers for printf and scanf family to
+    print in these formats. MSVC simply lacks this feature, even in C++.
+
+    16. <stdint.h>
+
+    MSVC lacked this for the longest time. It finally has it now, but it's still
+    non conformant as it lacks least and fast types.
+
+    17. Amending of C library functions in C++
+
+    C++ amends some C library functions to be more "type-safe", valid C code like
+    the following
+
+    const char *s = ...;
+    char *p = strchr(s, 'a');
+
+    will fail to compile in C++ because strchr is marked to take "char*". MSVC uses
+    the C++ definitions of these functions in C mode, breaking valid C code.
+
+    18. Library header files
+
+    C99 added the following header files
+
+        <complex.h>
+        <fenv.h>
+        <inttypes.h>
+        <stdbool.h>
+        <stdint.h>
+        <tgmath.h>
+
+    MSVC still lacks conforming implementations of all of these.
+
+    19. Non-prototype (K&R-style) function definitions
+
+    supported in all versions of C (though deprecated in newer ones like C99 and C11.)
+    the following should compile.
+
+    int foo(a, b)
+        int a;
+        int b;
+    {
+        return a + b;
+    }
+
+    but does not in MSVC.
+
+    20. tentative definitions and ODR
+
+    C uses tentative definitions for variables, e.g:
+
+    int i; // tentative definition
+    int i = 1; // explicit definition
+
+    C++ does not allow this, as only one definition of any given variable is allowed
+    within a program. MSVCs C mode uses C++ rules and breaks valid C programs.
+
+    21. _Pragma
+
+    C99 introduced _Pragma, MSVC lacks it but has a non-conformant _pragma.
+
+    22. Predefined identifiers
+
+    C99 introduces __func__, MSVC lacks it.
+
+    23. Returning void
+
+    C++ allows returining void, C does not allow this (except via extension.). MSVCs
+    C mode uses C++ rules and allows invalid C code to compile.
+
+    24. Structures declared in function ptototypes
+
+    C allows struct, union, and enum types to be declared within function prototype
+    scope, e.g.:
+
+    extern void  foo(const struct info { int typ; int sz; } *s);
+
+    int bar(struct point { int x, y; } pt)
+    { ... }
+
+    C also allows structure types to be declared as function return types, as in:
+
+    extern struct pt { int x; }  pos(void);
+
+    C++ does not allow this. MSVCs C mode also does not allow this. Preventing valid
+    C programs from compiling.
+
+    25. Variable-argument function declarators
+
+    C90 syntax allows a trailing ellipsis in the parameter list of a function
+    declarator, which specifies that the function can take zero or more additional
+    arguments after the last named parameter.
+
+    C++ also allows variable function argument lists, but provides two syntactical
+    forms for this feature.
+
+    int foo(int a, int b, ...);      // Valid C++ and C
+    int bar(int a, int b ...);       // Valid C++, invalid C
+
+    MSVCs C mode uses C++ rules and allows invalid C code to be compiled.
+
+    26. Nested directives in preprocessing expansion
+
+    C99s and C++11s preprocessor allows using directives in macro arguments during expansion.
+    MSVCs preprocessor does not, so this valid C++11 and C99 use of the preprocessor
+    does not work in MSVC
+
+    #define FOO(X) #X
+    FOO(
+    #ifdef BAR
+    1
+    #else
+    3
+    #endif
+    )
+
+    27. Preprocessor arithmetic
+
+    C99s and C++11s preprocessor does arithmetic on type intmax_t, but MSVC does
+    arithmetic on int only.
+
+    28. size_t
+
+    C99 added support for printing and reading size_t with "%zu" specifier for
+    the printf family of functions. MSVC does not support this at all. This is
+    also a requirement for C++11.
+
+Chapter 2 - C++11 support is Abysmal (VS 2013)
+
+    No support for ref-qualifiers
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2439.htm
+
+    No support for expression SFINAE
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2634.html
+
+    No support for attributes, e.g [[noreturn]]
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2761.pdf
+
+    Very limited support for constexpr (non-conforming)
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2235.pdf
+
+    Non conforming support for delegating constructors, as it does not respect
+    the initialization order and requirements set by the standard.
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1986.pdf
+
+    No support for inheriting constructors
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2540.htm
+
+    No support for char16_t/char32_t
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2249.html
+
+    No support for unicode string literals
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2442.htm
+
+    No support for universal character names in literals
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2170.html
+
+    No support for user-defined literals
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2765.pdf
+
+    No support for extended "sizeof"
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2253.html
+
+    No support for inline namespaces
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2535.htm
+
+    No support for unrestricted unions
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2544.pdf
+
+    No support for "noexcept"
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3050.html
+
+    Non conformant implementation of explicitly defaulted and deleted functions.
+    See the node on this page for more information
+        https://msdn.microsoft.com/en-us/library/dn457344.aspx
+
+    Only partially implemented alignment rules
+        http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2341.pdf
+
+Chapter 3 - Other miscellaneous bullshit
+
+    1. MSVC adds useless padding to objects
+
+    When the topmost polymorphic class in a hierarchy has members with alignment
+    requirement N where N > sizeof(void *), the compiler may add up to N bytes
+    of useless padding to your objects.
+
+    For more information on this, please see
+    http://lolengine.net/blog/2012/10/21/the-stolen-bytes
+
+    2. Member templates from private base class with using are inaccessible
+
+    The following legal (since C++98) code fails to compile in any version of MSVC.
+
+    class A {
+    public:
+        template <typename T>
+        class C {};
+    };
+
+    class B : private A {
+    public:
+        using A::C;
+    };
+
+    int main() {
+        B::C<int> c;
+    }
+
+    3. No support for two-phase lookup
+
+    MSVC does not support two-phase lookup which can break a lot of template-heavy
+    code and allow invalid C++ code to compile. See Boost library for tons of
+    workarounds.
+
+    4. Sad inline assembler
+
+    The assembler (only foor x86) is sad. There is none for x64.
+
+    5. Bad optimization
+
+    Generally known to produce really bad code in comparison to other compilers
+    like GCC and Clang.

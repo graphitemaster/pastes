@@ -1,0 +1,53 @@
+The sorry state of game development tools.
+By Dale Weiler
+
+Having been involved in both open source game development communities and
+the commercial industry it has become evident that the way the commercial industry
+believes tooling should be done is quite wrong and this is a convincing essay
+on why tooling should be integrated as part of the engine and not as external
+tools.
+
+Your tools are going to depend on the same set of features your engine
+depends on. For example, your proprietary file formats are going to
+be described by a header file which is going to be shared between the engine
+and the tool. Your engine probably has a lot of the functionality a tool would
+require; ranging from basic utilities to complicated mathematics and other
+miscellaneous things. Does it make sense to duplicate already proven code?
+Your engine likely has the necessary functionality to describe complex graphical
+user interfaces (since games themselves also require this), why would you not
+utilize that for your tools as well?
+
+Your development pipeline will improve if you integrate tools into the engine.
+Context switching between different content authoring tools wastes development
+time. Artists can still author large assets with external tools, but tools
+related specifically to engine-specific needs should be a core component of the
+engine itself. Having realtime feedback and tools in the engine, will allow for
+rapid iteration that could otherwise not be achieved.
+
+One argument is that content authoring software is massively more complicated,
+and that complexity carrying over into the format shouldn't be used directly or
+processed by the engine, but rather an external tool that removes the complexity
+added by the format. One such example is the FBX file format. In these situations
+the solution to the problem, is to simply not use the thing that introduces the
+problem. Yes, some things are better left unused than to be fixed with isolated
+external tools. Just avoid bad middle ware. In the case of FBX, Autodesk tools can
+export other model file formats that are more friendly to process with the engine.
+
+You should not have to bake or generate anything at compile time other than the
+engine and game itself. We can do a lot of things in real-time now, like photo-
+realistic rendering and physics simulation. Why are we still using offline
+processing is beyond me. Things like color grading, model optimization, shader
+compilation, level editing, etc, can be entirely done in the engine, in real-time.
+The open source community has proven just how possible this all is.
+Games like Sauerbraten, Tesseract and Grit are showing just what is possible.
+So the need for tools which bake anything is completely unjustified.
+
+The need to create, author and play is becoming part of games itself. Minecraft,
+Besiege and other sand-boxing games are showing us a new type of game play that
+was once overlooked. The ability to create art and express ones self. With the
+tools already designed and integrated as part of the engine, you can build
+sandbox games and give players the same tools you used to build the base game.
+You don't have to waste any development time writing game-specific tools as part
+of the game / engine to make a sandbox game. I also firmly believe, the reason
+we don't see more sand-boxing games is specifically because of this preconceived
+notion that anything that can, should be computed offline.

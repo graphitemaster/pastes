@@ -1,0 +1,68 @@
+An API that hurts.
+
+By: Dale Weiler
+
+The API:
+    #include <sys/mman.h>
+
+    void *mmap(void *addr, size_t length, int prot, int flags,
+              int fd, off_t offset);
+    int munmap(void *addr, size_t length);
+
+    The specific flag:
+        MAP_FIXED
+          Don't interpret addr as a hint: place the mapping at exactly
+          that address.  addr must be a multiple of the page size.  If
+          the memory region specified by addr and len overlaps pages of
+          any existing mapping(s), then the overlapped part of the
+          existing mapping(s) will be discarded.  If the specified
+          address cannot be used, mmap() will fail.  Because requiring a
+          fixed address for a mapping is less portable, the use of this
+          option is discouraged.
+
+
+The problem:
+    CPU cache is an important thing in modern computer architectures.
+    Without it you'd suffer some serious performance implications on a
+    scale of 1000x or even higher. How architectures design their cache
+    is to be as efficent as possible and one of those very methods is to
+    use a virtually indexed, physically taged cache, unlike traditional
+    CPUS (like the one you're most likely using now), which uses a
+    physically indexed and physically taged cache. The benefits of a
+    a virtually indexed cache is that you can perform translation while
+    probing the cache. This can save a few clock cycles.
+    
+    The problem arises when you consider the MAP_FIXED option and when
+    your cache size is larger than your page size (specifically in this
+    kind of architecture where cache is virtually indexed.) That is you can
+    take the same physical page and map it to two or more virtual addresses,
+    which themselfs do not map to the same line in the cache. If these
+    do not match then you can have the same data represented by that mapping
+    in two or more halves of the cache. Now you have data corruption. This
+    is called a back-alias.
+
+    This problem isn't an issue if you stick to using mmap without MAP_FIXED;
+    the kernel will pick an address for you that won't cause a back-alias.
+    MAP_FIXED however, gives developers the ability to create these back-aliases
+    themselves in user-space, ouch.
+
+    The solution that the Linux kernel, Solaris and even FreeBSD use to 
+    prevent this very issue, is disabling the L1 cache entierly for the
+    context that is using MAP_FIXED, ouch!
+    
+The bigger problem:
+    Dynamicly linked libraries require MAP_FIXED to operate correctly.
+    Everything within the shared object requires fixed mapping if you want
+    the benefits of the shared library, otherwise you'd be duplicating
+    the library in memory if it's already mapped. There is no easy way of
+    doing without MAP_FIXED for shared objects without the clever use of
+    IPC and linker scripts which align everything into a single managable mapping.
+
+The solution:
+    This really isn't a problem on modern architectures that use physically
+    indexed and physically tagged caches. At least we know why the documentation
+    discourages the use of MAP_FIXED, though. From this I'd probably conclude that
+    any use of MAP_FIXED other than to implement shared library support is most
+    likely wrong. On a more subtle note, now we know why shared libraries on SPARC
+    were so damn slow, hint: SPARC used a virtually indexed, physically tagged
+    cache.

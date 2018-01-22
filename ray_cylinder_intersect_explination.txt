@@ -1,0 +1,49 @@
+formula for circle
+    x^2 + y^2 = 1
+
+formula for a ray
+    P(t) = E + tD
+
+subsitute them into each other
+    (xE + t.xD)^2 + (yE + t.yD)^2 = 1
+
+turn it into quadratic form
+    a.t^2 + b.t + c = 0
+where
+    a = xD^2 + yD^2
+    b = 2.xD.xe + 2.yD.yE
+    c = xE^2 + yE^2 - 1
+
+quadratic has either none, one, or two solutions specified by
+
+a.t^2 + b.t + c = 0
+
+so lets look at a circle, assume S is start ray and D is direction
+
+a = D.x * D.x + S.z * S.z
+b = 2 * S.x * D.x + 2 * S.z * D.z
+c = S.x * S.x + S.z * S.z - 1
+
+b24ac = b*b - 4*a*c
+if (b24ac < 0)
+    return false;
+
+sqb24ac = sqrtf(b24c);
+t0 = (-b + sqb24c) / (2 * a);
+t1 = (-b - sqb24c) / (2 * a);
+
+now order t0 and t1 such that they're in ascending order to calculate the two
+intersection points
+
+if (t0 > t1)
+    swap(t0, t1)
+
+y0 = start.y + t0 * dir.y;
+y1 = start.y + t1 * dir.y;
+
+what this tells us is the following
+if (y0 > 1 && y1 > 1) then the ray misses the cylinder entirely.
+if (y0 > 1 && y1 < 1) then the ray hits the cylinder cap placed at +1.
+if (y0 < 1 && y0 > -1) then the ray intersects the side of the cylinder.
+if (y0 < -1 && y1 > -1) then the ray hits the cylinder cap placed at -1
+if (y0 < -1 && y1 < -1) then the ray misses the cylinder entirely.
